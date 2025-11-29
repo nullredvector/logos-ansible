@@ -1,0 +1,95 @@
+---
+- name: Initialize logos.fexel.net VPS
+  hosts: logos
+  become: yes
+  vars:
+    users:
+      - name: allan
+      - name: igor
+
+  tasks:
+    # ---- System Updates ----
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+
+    # ---- Install Docker & Docker Compose ----
+    - name: Install Docker and Docker Compose
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+          - fail2ban
+        state: present
+
+    - name: Enable Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Enable fail2ban service
+      systemd:
+        name: fail2ban
+        enabled: yes
+        state: started
+
+    # ---- Create Users ----
+    - name: Create users
+      user:
+        name: "{{ item.name }}"
+        shell: /bin/bash
+        createhome: yes
+        home: "/home/{{ item.name }}"
+      loop: "{{ users }}"
+
+    # ---- Create Home Directory Structure ----
+    - name: Create docker directory for each user
+      file:
+        path: "/home/{{ item.name }}/docker"
+        state: directory
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+        mode: '0755'
+      loop: "{{ users }}"
+
+    - name: Create stacks directory for each user
+      file:
+        path: "/home/{{ item.name }}/docker/stacks"
+        state: directory
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+        mode: '0755'
+      loop: "{{ users }}"
+
+    - name: Create appdata directory for each user
+      file:
+        path: "/home/{{ item.name }}/docker/appdata"
+        state: directory
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+        mode: '0755'
+      loop: "{{ users }}"
+
+    # ---- Add Users to Docker Group ----
+    - name: Add users to docker group
+      user:
+        name: "{{ item.name }}"
+        groups: docker
+        append: yes
+      loop: "{{ users }}"
+
+    # ---- Add Users to Sudoers ----
+    - name: Add users to sudoers (passwordless sudo)
+      lineinfile:
+        path: /etc/sudoers
+        state: present
+        line: "{{ item.name }} ALL=(ALL) NOPASSWD: ALL"
+        validate: 'visudo -cf %s'
+      loop: "{{ users }}"
+
+
