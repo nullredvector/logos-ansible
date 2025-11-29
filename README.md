@@ -57,7 +57,6 @@ ansible-playbook -i inventory.ini setup.yaml
 
 ## Notes
 
-- The playbook uses the Terraform SSH key for initial root access
 - Users can run Docker commands directly without `sudo` after login
 - Both users have passwordless sudo access for administrative tasks
 - All user directories are created with appropriate permissions
